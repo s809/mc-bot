@@ -69,5 +69,7 @@ export default function createFollowOwnerState() {
         }),
     ];
 
-    return new NestedStateMachine(transitions, findPlayer);
+    let stateMachine = new NestedStateMachine(transitions, findPlayer);
+    stateMachine.stateName = "followOwner";
+    return stateMachine;
 }

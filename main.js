@@ -18,63 +18,108 @@ import {
 } from "mineflayer-statemachine";
 
 import createFollowOwnerState from './nestedStates/createFollowOwnerState.js';
-import createAutoEatState from "./nestedStates/createAutoEatState.js";
 import minecraft_protocol_forge from 'minecraft-protocol-forge';
-import BehaviorAutoEat from './behaviors/BehaviorAutoEat.js';
+import { BehaviorCheckFoodAvailable } from './behaviors/BehaviorCheckFoodAvailable.js';
+import createAutoEatState from './nestedStates/createAutoEatState.js';
+
 const { autoVersionForge } = minecraft_protocol_forge;
+
+const targets = {
+    alreadyCheckedFood: false
+}
 
 bot.on("kicked", console.error);
 bot.on("error", console.warn);
-
 bot.on("end", process.exit);
 
-bot.once('spawn', ev => {
+process.on("uncaughtException", console.error);
+
+bot.on("playerCollect", (collector, collected) => {
+    targets.alreadyCheckedFood = false;
+});
+
+bot.once('spawn', () => {
     const pass = "botaccount";
     bot.chat(`/reg ${pass} ${pass}`);
     bot.chat(`/login ${pass}`);
 
-    mineflayerViewer(bot, { port: 8081, firstPerson: true });
-
-    const targets = {
-        waitingForCommandToFinish: true
-    }
-
     const idle = new BehaviorIdle();
     const followPlayer = createFollowOwnerState();
-    const checkFoodAvailable = new BehaviorAutoEat(bot, targets);
-    const autoEat = createAutoEatState();
+    const checkFoodAvailable = new BehaviorCheckFoodAvailable(bot, targets);
+    const autoEat = createAutoEatState(targets);
 
     const transitions = [
+        // Following owner has lower priority compared to other stateful commands
         new StateTransition({
             parent: idle,
             child: followPlayer,
             shouldTransition: () => globalTargets.followOwner
         }),
-
         new StateTransition({
             parent: followPlayer,
             child: idle,
             shouldTransition: () => !globalTargets.followOwner || globalTargets.currentCommand
         }),
 
+        // Check food while idle
         new StateTransition({
-            parent: followPlayer,
-            child: autoEat,
-            shouldTransition: () => !targets.waitingForCommandToFinish, //bot.food <= 14,
+            parent: idle,
+            child: checkFoodAvailable,
+            shouldTransition: () => bot.food <= 14 && !targets.alreadyCheckedFood
+        }),
+        new StateTransition({
+            parent: checkFoodAvailable,
+            child: idle,
+            shouldTransition: () => !checkFoodAvailable.foodAvailable && !checkFoodAvailable.foodObtainable,
+            onTransition: () => {
+                bot.chat("I need food and I don't have any!");
+                targets.alreadyCheckedFood = true;
+            }
         }),
 
+        // Grab food and eat if present
+        new StateTransition({
+            parent: checkFoodAvailable,
+            child: autoEat,
+            shouldTransition: () => checkFoodAvailable.foodAvailable
+        }),
         new StateTransition({
             parent: autoEat,
-            child: followPlayer,
-            shouldTransition: () => bot.food > 14,
-        }),
+            child: idle,
+            shouldTransition: () => autoEat.isFinished() && !globalTargets.currentCommand 
+        })
     ];
+
+    transitions.push(...[
+        followPlayer
+    ].flatMap(state => [
+        new StateTransition({
+            parent: state,
+            child: checkFoodAvailable,
+            shouldTransition: () => bot.food <= 14 && !targets.alreadyCheckedFood,
+        }),
+        new StateTransition({
+            parent: checkFoodAvailable,
+            child: state,
+            shouldTransition: () => !checkFoodAvailable.foodAvailable && globalTargets.currentCommand === state.stateName,
+            onTransition: () => {
+                bot.chat("I need food and I don't have any!");
+                targets.alreadyCheckedFood = true;
+            }
+        }),
+        new StateTransition({
+            parent: autoEat,
+            child: state,
+            shouldTransition: () => autoEat.isFinished() && globalTargets.currentCommand === state.stateName
+        })
+    ]));
 
     // Start state machine
     let stateMachine = new BotStateMachine(bot, new NestedStateMachine(transitions, idle));
 
     const webserver = new StateMachineWebserver(bot, stateMachine, 8080);
     webserver.startServer();
+    mineflayerViewer(bot, { port: 8081, firstPerson: true });
 });
 
 bot.on('chat', async (username, msg) => {
@@ -112,10 +157,7 @@ bot.on('chat', async (username, msg) => {
     }
 
     try {
-        if (await command.func(...args))
-            bot.chat("ok");
-        else
-            bot.chat("failed");
+        bot.chat(await command.func(...args) ?? "ok");
     }
     catch (e) {
         bot.chat("error");
@@ -132,6 +174,4 @@ bot.on('chat', async (username, msg) => {
         pvp,
         armorManager,
     ]);
-
-    new Promise(resolve => setTimeout(resolve, 30000));
 })();

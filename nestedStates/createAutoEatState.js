@@ -1,40 +1,37 @@
 import {
     StateTransition,
-    BehaviorMoveTo,
-    BehaviorFollowEntity,
-    BehaviorLookAtEntity,
     NestedStateMachine, 
-    BehaviorGetClosestEntity} from "mineflayer-statemachine";
-import BehaviorAutoEat from "../behaviors/BehaviorAutoEat.js";
-import BehaviorFindFoodSource from "../behaviors/BehaviorFindFoodSource.js";
+    BehaviorEquipItem,
+    BehaviorIdle} from "mineflayer-statemachine";
+import { BehaviorConsumeItem } from "../behaviors/BehaviorConsumeItem.js";
 
-import { bot, globalTargets } from "../env.js";
+import { bot } from "../env.js";
 
 /**
  * Eats automatically.
  * Stops when full.
  * When out of food, tries to kill mobs if allowed.
  */
-export default function createAutoEatState() {
-    const targets = {};
+export default function createAutoEatState(targets) {
+    const equipItem = new BehaviorEquipItem(bot, targets);
+    equipItem.stateName = "equipItem";
+    const consumeItem = new BehaviorConsumeItem(bot, targets);
+    const finish = new BehaviorIdle();
 
-    // Follow states
-    const autoEat = new BehaviorAutoEat(bot, targets);
-    const findFoodSource = new BehaviorFindFoodSource(bot, targets);
-    //const findMob = new BehaviorGetClosestEntity(bot, targets, false);
-    //const followPlayer = new BehaviorFollowEntity(bot, targets);
-    //const moveToPlayer = new BehaviorMoveTo(bot, targets);
-    //const lookAtPlayer = new BehaviorLookAtEntity(bot, targets);
-
-    // Create our transitions
     const transitions = [
         new StateTransition({
-            parent: autoEat,
-            child: findFoodSource,
-            shouldTransition: () => !autoEat.foodAvailable && !globalTargets.currentCommand
+            parent: equipItem,
+            child: consumeItem,
+            shouldTransition: () => true
         }),
-        //new StateTransition
+        new StateTransition({
+            parent: consumeItem,
+            child: finish,
+            shouldTransition: () => !consumeItem.isConsuming
+        })
     ];
 
-    return new NestedStateMachine(transitions, findFoodSource);
+    let stateMachine = new NestedStateMachine(transitions, equipItem, finish);
+    stateMachine.stateName = "autoEat";
+    return stateMachine;
 }
