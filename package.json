@@ -1,0 +1,15 @@
+{
+  "name": "mc-bot",
+  "main": "main.js",
+  "type": "module",
+  "dependencies": {
+    "minecraft-protocol-forge": "^1.0.0",
+    "mineflayer": "^3.7.0",
+    "mineflayer-armor-manager": "^1.4.1",
+    "mineflayer-auto-eat": "^2.0.0",
+    "mineflayer-pathfinder": "^1.6.2",
+    "mineflayer-pvp": "^1.0.2",
+    "mineflayer-statemachine": "^1.6.4",
+    "prismarine-viewer": "^1.19.3"
+  }
+}
