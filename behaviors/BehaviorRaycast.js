@@ -14,9 +14,9 @@ export class BehaviorRaycast {
     onStateEntered() {
         /** @type {import("prismarine-entity").Entity} */
         let entity = this.targets.entity;
-
+        console.log(entity.position);
         this.targets.position = this.bot.world.raycast(
-            entity.position,
+            entity.position.offset(0, 1.62, 0),
             new Vec3(
                 -Math.cos(entity.pitch) * Math.sin(entity.yaw),
                 Math.sin(entity.pitch),
