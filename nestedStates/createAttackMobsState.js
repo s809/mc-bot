@@ -1,14 +1,10 @@
 import {
     StateTransition,
-    BehaviorMoveTo,
-    BehaviorFollowEntity,
-    BehaviorLookAtEntity,
     EntityFilters,
     NestedStateMachine,
     BehaviorGetClosestEntity
 } from "mineflayer-statemachine";
 import { BehaviorAttackMob } from "../behaviors/BehaviorAttackMob.js";
-import BehaviorFindOwner from "../behaviors/BehaviorFindOwner.js";
 
 import { bot, owner } from "../env.js";
 

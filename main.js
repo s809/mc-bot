@@ -23,6 +23,7 @@ import { BehaviorCheckFoodAvailable } from './behaviors/BehaviorCheckFoodAvailab
 import createAutoEatState from './nestedStates/createAutoEatState.js';
 import { createAttackMobsState } from './nestedStates/createAttackMobsState.js';
 import { createGotoDirectionState } from './nestedStates/createGotoDirectionState.js';
+import { createPickUpItemsState } from './nestedStates/createPickUpItemsState.js';
 
 const { autoVersionForge } = minecraft_protocol_forge;
 
@@ -63,6 +64,7 @@ bot.once('spawn', () => {
 
     const attackMobs = createAttackMobsState(bot, targets);
     const gotoDirection = createGotoDirectionState(bot, targets);
+    const pickUpItems = createPickUpItemsState(bot, targets);
 
     const transitions = [
         // Check food while idle
@@ -94,7 +96,8 @@ bot.once('spawn', () => {
 
     const commands = [
         attackMobs,
-        gotoDirection
+        gotoDirection,
+        pickUpItems
     ];
 
     transitions.push(...commands.flatMap(state => [
@@ -155,7 +158,9 @@ bot.once('spawn', () => {
     );
 
     // Start state machine
-    let stateMachine = new BotStateMachine(bot, new NestedStateMachine(transitions, idle));
+    let rootState = new NestedStateMachine(transitions, idle);
+    rootState.stateName = "rootState";
+    let stateMachine = new BotStateMachine(bot, rootState);
 
     const webserver = new StateMachineWebserver(bot, stateMachine, 8080);
     webserver.startServer();

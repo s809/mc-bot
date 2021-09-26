@@ -8,11 +8,6 @@ import { BehaviorConsumeItem } from "../behaviors/BehaviorConsumeItem.js";
 
 import { bot } from "../env.js";
 
-/**
- * Eats automatically.
- * Stops when full.
- * When out of food, tries to kill mobs if allowed.
- */
 export default function createAutoEatState(targets) {
     const equipItem = new BehaviorEquipItem(bot, targets);
     equipItem.stateName = "equipItem";
