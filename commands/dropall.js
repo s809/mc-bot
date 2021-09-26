@@ -1,12 +1,10 @@
 import { bot } from "../env.js";
 
 async function dropall() {
-    while (true) {
-        let items = bot.inventory.items();
-        if (!items.length) return;
+    let items = bot.inventory.items();
 
-        await bot.tossStack(items[0]);
-    }
+    for (let item of items)
+        await bot.tossStack(item);
 }
 
 export const name = "dropall";

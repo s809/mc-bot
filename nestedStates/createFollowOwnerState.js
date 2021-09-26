@@ -16,7 +16,7 @@ export default function createFollowOwnerState() {
     };
 
     // Follow states
-    const findPlayer = new BehaviorFindOwner(bot, targets);
+    const findOwner = new BehaviorFindOwner(bot, targets);
     const followPlayer = new BehaviorFollowEntity(bot, targets);
     const moveToPlayer = new BehaviorMoveTo(bot, targets);
     const lookAtPlayer = new BehaviorLookAtEntity(bot, targets);
@@ -26,29 +26,29 @@ export default function createFollowOwnerState() {
 
         // We want to start following the player immediately after finding them...
         new StateTransition({
-            parent: findPlayer,
+            parent: findOwner,
             child: followPlayer,
-            shouldTransition: () => findPlayer.targets.entity,
+            shouldTransition: () => findOwner.targets.entity,
         }),
 
         // (Go back to searching if player is lost)
         new StateTransition({
             parent: followPlayer,
-            child: findPlayer,
+            child: findOwner,
             shouldTransition: () => !bot.players[owner]?.entity,
         }),
 
         // ...or go to last position where they were seen.
         new StateTransition({
-            parent: findPlayer,
+            parent: findOwner,
             child: moveToPlayer,
-            shouldTransition: () => findPlayer.targets.position,
+            shouldTransition: () => findOwner.targets.position,
         }),
 
         // Update last known position if player is found while moving
         new StateTransition({
             parent: moveToPlayer,
-            child: findPlayer,
+            child: findOwner,
             shouldTransition: () => bot.players[owner]?.entity,
         }),
 
@@ -69,7 +69,7 @@ export default function createFollowOwnerState() {
         }),
     ];
 
-    let stateMachine = new NestedStateMachine(transitions, findPlayer);
+    let stateMachine = new NestedStateMachine(transitions, findOwner);
     stateMachine.stateName = "followOwner";
     return stateMachine;
 }

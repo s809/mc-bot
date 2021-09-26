@@ -1,8 +1,9 @@
 import {
     StateTransition,
-    NestedStateMachine, 
+    NestedStateMachine,
     BehaviorEquipItem,
-    BehaviorIdle} from "mineflayer-statemachine";
+    BehaviorIdle
+} from "mineflayer-statemachine";
 import { BehaviorConsumeItem } from "../behaviors/BehaviorConsumeItem.js";
 
 import { bot } from "../env.js";
@@ -17,6 +18,7 @@ export default function createAutoEatState(targets) {
     equipItem.stateName = "equipItem";
     const consumeItem = new BehaviorConsumeItem(bot, targets);
     const finish = new BehaviorIdle();
+    finish.stateName = "finish";
 
     const transitions = [
         new StateTransition({

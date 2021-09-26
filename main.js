@@ -21,18 +21,31 @@ import createFollowOwnerState from './nestedStates/createFollowOwnerState.js';
 import minecraft_protocol_forge from 'minecraft-protocol-forge';
 import { BehaviorCheckFoodAvailable } from './behaviors/BehaviorCheckFoodAvailable.js';
 import createAutoEatState from './nestedStates/createAutoEatState.js';
+import { createAttackMobsState } from './nestedStates/createAttackMobsState.js';
+import { createGotoDirectionState } from './nestedStates/createGotoDirectionState.js';
 
 const { autoVersionForge } = minecraft_protocol_forge;
 
 const targets = {
-    alreadyCheckedFood: false
+    alreadyCheckedFood: false,
+    chattedNoFood: false
+}
+
+function chatNoFood() {
+    if (!targets.chattedNoFood)
+        bot.chat("I need food and I don't have any!");
+
+    targets.chattedNoFood = true;
+    targets.alreadyCheckedFood = true;
+}
+
+function afterEating() {
+    targets.chattedNoFood = false;
 }
 
 bot.on("kicked", console.error);
 bot.on("error", console.warn);
 bot.on("end", process.exit);
-
-process.on("uncaughtException", console.error);
 
 bot.on("playerCollect", (collector, collected) => {
     targets.alreadyCheckedFood = false;
@@ -48,19 +61,10 @@ bot.once('spawn', () => {
     const checkFoodAvailable = new BehaviorCheckFoodAvailable(bot, targets);
     const autoEat = createAutoEatState(targets);
 
-    const transitions = [
-        // Following owner has lower priority compared to other stateful commands
-        new StateTransition({
-            parent: idle,
-            child: followPlayer,
-            shouldTransition: () => globalTargets.followOwner
-        }),
-        new StateTransition({
-            parent: followPlayer,
-            child: idle,
-            shouldTransition: () => !globalTargets.followOwner || globalTargets.currentCommand
-        }),
+    const attackMobs = createAttackMobsState(bot, targets);
+    const gotoDirection = createGotoDirectionState(bot, targets);
 
+    const transitions = [
         // Check food while idle
         new StateTransition({
             parent: idle,
@@ -71,10 +75,7 @@ bot.once('spawn', () => {
             parent: checkFoodAvailable,
             child: idle,
             shouldTransition: () => !checkFoodAvailable.foodAvailable && !checkFoodAvailable.foodObtainable,
-            onTransition: () => {
-                bot.chat("I need food and I don't have any!");
-                targets.alreadyCheckedFood = true;
-            }
+            onTransition: chatNoFood
         }),
 
         // Grab food and eat if present
@@ -86,13 +87,39 @@ bot.once('spawn', () => {
         new StateTransition({
             parent: autoEat,
             child: idle,
-            shouldTransition: () => autoEat.isFinished() && !globalTargets.currentCommand 
-        })
+            shouldTransition: () => autoEat.isFinished() && !globalTargets.currentCommand,
+            onTransition: afterEating
+        }),
     ];
 
+    const commands = [
+        attackMobs,
+        gotoDirection
+    ];
+
+    transitions.push(...commands.flatMap(state => [
+        // Switch to/from command
+        new StateTransition({
+            parent: idle,
+            child: state,
+            shouldTransition: () => globalTargets.currentCommand === state.stateName,
+        }),
+        new StateTransition({
+            parent: state,
+            child: idle,
+            shouldTransition: () => globalTargets.currentCommand !== state.stateName || state.isFinished(),
+            onTransition: () => {
+                if (globalTargets.currentCommand === state.stateName)
+                    globalTargets.currentCommand = null;
+            }
+        }),
+    ]));
+
     transitions.push(...[
-        followPlayer
+        followPlayer,
+        ...commands
     ].flatMap(state => [
+        // Auto-eat while executing command
         new StateTransition({
             parent: state,
             child: checkFoodAvailable,
@@ -102,17 +129,30 @@ bot.once('spawn', () => {
             parent: checkFoodAvailable,
             child: state,
             shouldTransition: () => !checkFoodAvailable.foodAvailable && globalTargets.currentCommand === state.stateName,
-            onTransition: () => {
-                bot.chat("I need food and I don't have any!");
-                targets.alreadyCheckedFood = true;
-            }
+            onTransition: chatNoFood
         }),
         new StateTransition({
             parent: autoEat,
             child: state,
-            shouldTransition: () => autoEat.isFinished() && globalTargets.currentCommand === state.stateName
+            shouldTransition: () => autoEat.isFinished() && globalTargets.currentCommand === state.stateName,
+            onTransition: afterEating
         })
     ]));
+
+    // Follow owner
+    transitions.push(
+        // Following owner has lower priority compared to other stateful commands
+        new StateTransition({
+            parent: idle,
+            child: followPlayer,
+            shouldTransition: () => globalTargets.followOwner
+        }),
+        new StateTransition({
+            parent: followPlayer,
+            child: idle,
+            shouldTransition: () => !globalTargets.followOwner || globalTargets.currentCommand
+        }),
+    );
 
     // Start state machine
     let stateMachine = new BotStateMachine(bot, new NestedStateMachine(transitions, idle));
@@ -174,4 +214,6 @@ bot.on('chat', async (username, msg) => {
         pvp,
         armorManager,
     ]);
+
+    process.on("uncaughtException", console.error);
 })();
