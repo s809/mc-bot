@@ -2,7 +2,8 @@ import {
     StateTransition,
     EntityFilters,
     NestedStateMachine,
-    BehaviorGetClosestEntity
+    BehaviorGetClosestEntity,
+    BehaviorIdle
 } from "mineflayer-statemachine";
 import { BehaviorAttackMob } from "../behaviors/BehaviorAttackMob.js";
 
@@ -36,6 +37,8 @@ export function createAttackMobsState() {
         EntityFilters().MobsOnly(entity) &&
         !excludedMobs.includes(entity.name) &&
         entity.position.distanceTo(bot.players?.[owner]?.entity.position) < 15);
+    const loop = new BehaviorIdle();
+    loop.stateName = "loop";
     const attackMob = new BehaviorAttackMob(bot, targets);
 
     // Create our transitions
@@ -49,6 +52,17 @@ export function createAttackMobsState() {
             parent: attackMob,
             child: findMob,
             shouldTransition: () => !attackMob.isAttacking
+        }),
+
+        new StateTransition({
+            parent: findMob,
+            child: loop,
+            shouldTransition: () => !targets.entity,
+        }),
+        new StateTransition({
+            parent: loop,
+            child: findMob,
+            shouldTransition: () => true
         }),
     ];
 

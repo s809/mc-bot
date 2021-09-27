@@ -1,13 +1,5 @@
 "use strict";
 
-const mobFoodSources = [
-    "pig",
-    "sheep",
-    "cow",
-    "sheep",
-    "zombie",
-];
-
 export class BehaviorConsumeItem {
     constructor(bot, targets) {
         /** @type {import("mineflayer").Bot} */
