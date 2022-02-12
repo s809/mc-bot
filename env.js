@@ -7,7 +7,8 @@ export const owner = "NoNick";
 export const botDirectory = fileURLToPath(dirname(import.meta.url));
 
 export const bot = mineflayer.createBot({
-    host: "kuracord.tk",
+    host: "130.61.57.25",
+    port: 25566,
     username: "Nick",
 });
 

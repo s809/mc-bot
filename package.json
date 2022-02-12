@@ -3,14 +3,14 @@
   "main": "main.js",
   "type": "module",
   "dependencies": {
-    "minecraft-protocol-forge": "^1.0.0",
-    "mineflayer": "^3.7.0",
-    "mineflayer-armor-manager": "^1.4.1",
-    "mineflayer-auto-eat": "^2.0.0",
-    "mineflayer-pathfinder": "^1.6.2",
-    "mineflayer-pvp": "^1.0.2",
-    "mineflayer-statemachine": "^1.6.4",
-    "prismarine-viewer": "^1.19.3",
-    "vec3": "^0.1.7"
+    "minecraft-protocol-forge": "latest",
+    "mineflayer": "latest",
+    "mineflayer-armor-manager": "latest",
+    "mineflayer-auto-eat": "latest",
+    "mineflayer-pathfinder": "latest",
+    "mineflayer-pvp": "latest",
+    "mineflayer-statemachine": "latest",
+    "prismarine-viewer": "latest",
+    "vec3": "latest"
   }
 }

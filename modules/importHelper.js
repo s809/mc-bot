@@ -31,9 +31,10 @@ export async function importCommands(modulePath) {
     for (let entry of (await readdir(dir, { withFileTypes: true }))
         .filter(entry => entry.name !== "index.js")) {
 
-        console.log(`${dir}/${entry.name}${entry.isDirectory() ? `/index.js` : ""}`);
+        let file = `file://${dir}/${entry.name}${entry.isDirectory() ? `/index.js` : ""}`;
+        console.log(file);
 
-        modules.push(await import(`${dir}/${entry.name}${entry.isDirectory() ? `/index.js` : ""}`));
+        modules.push(await import(file));
     }
 
     return makeSubCommands(modules);

@@ -65,13 +65,14 @@ bot.once('spawn', () => {
     const attackMobs = createAttackMobsState(bot, targets);
     const gotoDirection = createGotoDirectionState(bot, targets);
     const pickUpItems = createPickUpItemsState(bot, targets);
+    const needFoodCondition = () => ((bot.health < 20 && bot.food < 18) || bot.food < 14) && !targets.alreadyCheckedFood;
 
     const transitions = [
         // Check food while idle
         new StateTransition({
             parent: idle,
             child: checkFoodAvailable,
-            shouldTransition: () => bot.food <= 14 && !targets.alreadyCheckedFood
+            shouldTransition: needFoodCondition
         }),
         new StateTransition({
             parent: checkFoodAvailable,
@@ -112,7 +113,7 @@ bot.once('spawn', () => {
             child: idle,
             shouldTransition: () => globalTargets.currentCommand !== state.stateName || state.isFinished(),
             onTransition: () => {
-                if (globalTargets.currentCommand === state.stateName)
+                if (state.isFinished())
                     globalTargets.currentCommand = null;
             }
         }),
@@ -126,7 +127,7 @@ bot.once('spawn', () => {
         new StateTransition({
             parent: state,
             child: checkFoodAvailable,
-            shouldTransition: () => bot.food <= 14 && !targets.alreadyCheckedFood,
+            shouldTransition: needFoodCondition,
         }),
         new StateTransition({
             parent: checkFoodAvailable,
