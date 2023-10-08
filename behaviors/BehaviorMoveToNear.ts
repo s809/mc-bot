@@ -42,11 +42,11 @@ export class BehaviorMoveToNear implements StateBehavior {
         this.bot.setControlState("sprint", true);
     }
 
-    update = synchronizeAsync(async () => {
+    update = synchronizeAsync(() => this.active, async awaitWrapper => {
         const currentPos = this.bot.entity.position;
 
         // Jump if need
-        const raycastResults = await Promise.all([
+        const raycastResults = await awaitWrapper(Promise.all([
             0.5,
             1.5
         ].map(offsetY => this.bot.world.raycast(
@@ -57,12 +57,11 @@ export class BehaviorMoveToNear implements StateBehavior {
                 -Math.cos(this.bot.entity.yaw),
             ),
             Math.max(this.targets.entity.velocity.norm(), 1)
-        )));
+        ))));
         const shouldJump = !!raycastResults[0] && (!raycastResults[1]
             || currentPos.xzDistanceTo((raycastResults[1] as unknown as Block).position)
                 > currentPos.xzDistanceTo((raycastResults[0] as unknown as Block).position));
-        if (this.active)
-            this.bot.setControlState("jump", shouldJump);
+        this.bot.setControlState("jump", shouldJump);
 
         // Steer
         this.bot.movement.heuristic.get("proximity").target(this.targets.entity.position);
